@@ -3,216 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nova Trading Terminal</title>
-    <!-- Google Fonts & Tailwind CSS -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Plus Jakarta Sans', 'sans-serif'],
-                        mono: ['JetBrains Mono', 'monospace'],
-                    },
-                    colors: {
-                        brand: {
-                            bg: '#080b11',
-                            card: '#0e131f',
-                            accent: '#38bdf8',
-                            success: '#10b981',
-                            danger: '#ef4444',
-                            warning: '#f59e0b',
-                            border: '#1e293b'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    <title>Nova Perp Bot - Canlı Takip Paneli</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #080b11; }
-        .glass-header {
-            background: rgba(14, 19, 31, 0.85);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(30, 41, 59, 0.7);
-        }
-        .custom-shadow {
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-        }
+        body { background-color: #0f172a; color: #e2e8f0; font-family: system-ui, -apple-system, sans-serif; }
+        .card { background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; }
+        .badge-running { background-color: #10b981; color: #fff; }
+        .badge-paused { background-color: #f59e0b; color: #fff; }
+        .stat-value { font-size: 2.2rem; font-weight: 700; color: #38bdf8; }
+        .nav-link { color: #94a3b8; }
+        .nav-link.active { color: #38bdf8 !important; }
+        .table { color: #cbd5e1; }
+        .table-dark { --bs-table-bg: #1e293b; }
     </style>
 </head>
-<body class="font-sans antialiased text-slate-200 min-h-screen pb-12">
-
-    <!-- Navbar -->
-    <header class="glass-header sticky top-0 z-50 px-4 lg:px-8 py-3 custom-shadow">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <div class="flex items-center space-x-3">
-                <div class="h-9 w-9 rounded-lg bg-gradient-to-tr from-sky-400 to-indigo-600 flex items-center justify-center font-bold text-white custom-shadow">⚡</div>
-                <div>
-                    <h1 class="text-base font-extrabold tracking-tight text-white leading-none">NOVA TERMINAL</h1>
-                    <span class="text-[10px] font-mono text-sky-400 uppercase tracking-widest">Otonom Algoritmik Sistem</span>
-                </div>
+<body>
+    <div class="container py-4">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h3 mb-1">🤖 Nova Perp Bot Control Panel</h1>
+                <p class="text-muted mb-0">Uçtan Uca Akıllı Otomatik Swing Trading Sistem İzleme Ekranı</p>
             </div>
-            <div class="flex items-center space-x-3">
-                <span id="system-status" class="text-xs font-mono font-bold px-3 py-1.5 rounded-full border border-brand-border bg-brand-bg transition-all duration-300">BAĞLANTI KURULUYOR...</span>
-            </div>
-        </div>
-    </header>
-
-    <main class="max-w-7xl mx-auto px-4 lg:px-8 mt-6">
-        
-        <!-- Üst Özet Kartları -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <!-- Portföy Değeri -->
-            <div class="bg-brand-card border border-brand-border rounded-xl p-4 custom-shadow relative overflow-hidden group">
-                <div class="absolute -right-4 -bottom-4 text-brand-border text-6xl font-extrabold select-none opacity-20 pointer-events-none group-hover:scale-110 transition-transform duration-300">💰</div>
-                <p class="text-xs text-slate-400 font-semibold mb-1 uppercase tracking-wider">Cüzdan Değeri</p>
-                <p class="text-2xl lg:text-3xl font-extrabold text-white tracking-tight font-mono" id="equity-val">- $</p>
-            </div>
-            <!-- Aktif Pozisyonlar -->
-            <div class="bg-brand-card border border-brand-border rounded-xl p-4 custom-shadow relative overflow-hidden group">
-                <div class="absolute -right-4 -bottom-4 text-brand-border text-6xl font-extrabold select-none opacity-20 pointer-events-none group-hover:scale-110 transition-transform duration-300">📊</div>
-                <p class="text-xs text-slate-400 font-semibold mb-1 uppercase tracking-wider">Açık Pozisyonlar</p>
-                <p class="text-2xl lg:text-3xl font-extrabold text-brand-warning tracking-tight font-mono" id="positions-count">0</p>
-            </div>
-            <!-- Üretilen Sinyaller -->
-            <div class="bg-brand-card border border-brand-border rounded-xl p-4 custom-shadow relative overflow-hidden group">
-                <div class="absolute -right-4 -bottom-4 text-brand-border text-6xl font-extrabold select-none opacity-20 pointer-events-none group-hover:scale-110 transition-transform duration-300">📡</div>
-                <p class="text-xs text-slate-400 font-semibold mb-1 uppercase tracking-wider">Taranan Sinyal</p>
-                <p class="text-2xl lg:text-3xl font-extrabold text-sky-400 tracking-tight font-mono" id="signals-count">-</p>
-            </div>
-            <!-- Toplam Kline Verisi -->
-            <div class="bg-brand-card border border-brand-border rounded-xl p-4 custom-shadow relative overflow-hidden group">
-                <div class="absolute -right-4 -bottom-4 text-brand-border text-6xl font-extrabold select-none opacity-20 pointer-events-none group-hover:scale-110 transition-transform duration-300">🗄️</div>
-                <p class="text-xs text-slate-400 font-semibold mb-1 uppercase tracking-wider">Veritabanı (MUM)</p>
-                <p class="text-2xl lg:text-3xl font-extrabold text-teal-400 tracking-tight font-mono" id="klines-count">-</p>
+            <div>
+                <span id="system-status" class="badge rounded-pill px-3 py-2 fs-6">YÜKLENİYOR...</span>
             </div>
         </div>
 
-        <!-- Alt Bölümler -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            
-            <!-- Aktif Pozisyonlar Paneli -->
-            <div class="lg:col-span-6 bg-brand-card border border-brand-border rounded-xl p-5 custom-shadow">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-sm font-extrabold text-white tracking-wider uppercase flex items-center space-x-2">
-                        <span class="inline-block h-2 w-2 rounded-full bg-brand-accent animate-pulse"></span>
-                        <span>Aktif Pozisyonlar (Binance Testnet)</span>
-                    </h3>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="border-b border-brand-border text-slate-400 text-xs font-semibold uppercase tracking-wider">
-                                <th class="pb-3">Parite</th>
-                                <th class="pb-3 text-center">Yön</th>
-                                <th class="pb-3 text-right">Giriş Fiyatı</th>
-                                <th class="pb-3 text-center">Kaldıraç</th>
-                                <th class="pb-3 text-right">SL / TP</th>
-                            </tr>
-                        </thead>
-                        <tbody id="active-positions-table" class="text-sm font-mono divide-y divide-brand-border/40">
-                            <tr>
-                                <td colspan="5" class="text-center text-slate-500 py-10 font-sans">Şu an aktif açık pozisyon bulunmuyor.</td>
-                            </tr>
-                        </tbody>
-                    </table>
+        <!-- Stats Grid -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3">
+                <div class="card p-3 text-center">
+                    <div class="text-muted small mb-1">Cüzdan Değeri (Equity)</div>
+                    <div class="stat-value" id="equity-val">1054.45 $</div>
                 </div>
             </div>
-
-            <!-- Geçmiş İşlemler Paneli -->
-            <div class="lg:col-span-6 bg-brand-card border border-brand-border rounded-xl p-5 custom-shadow">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-sm font-extrabold text-white tracking-wider uppercase flex items-center space-x-2">
-                        <span>📜 Son Kapatılan İşlemler</span>
-                    </h3>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="border-b border-brand-border text-slate-400 text-xs font-semibold uppercase tracking-wider">
-                                <th class="pb-3">Parite</th>
-                                <th class="pb-3 text-center">Yön</th>
-                                <th class="pb-3 text-right">Net PnL</th>
-                                <th class="pb-3 text-center">Kapanış Nedeni</th>
-                            </tr>
-                        </thead>
-                        <tbody id="recent-trades-table" class="text-sm font-mono divide-y divide-brand-border/40">
-                            <tr>
-                                <td colspan="4" class="text-center text-slate-500 py-10 font-sans">Gerçekleşmiş işlem geçmişi bulunmuyor.</td>
-                            </tr>
-                        </tbody>
-                    </table>
+            <div class="col-6 col-md-3">
+                <div class="card p-3 text-center">
+                    <div class="text-muted small mb-1">Toplam Mum (Klines)</div>
+                    <div class="stat-value" id="klines-count">-</div>
                 </div>
             </div>
-
+            <div class="col-6 col-md-3">
+                <div class="card p-3 text-center">
+                    <div class="text-muted small mb-1">Üretilen Sinyaller</div>
+                    <div class="stat-value" id="signals-count">-</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card p-3 text-center">
+                    <div class="text-muted small mb-1">Aktif Pozisyonlar</div>
+                    <div class="stat-value text-warning" id="positions-count">0</div>
+                </div>
+            </div>
         </div>
 
-    </main>
+        <!-- Main Content -->
+        <div class="row g-4">
+            <!-- Active Positions -->
+            <div class="col-12 col-lg-6">
+                <div class="card p-3 h-100">
+                    <h5 class="mb-3">📁 Aktif Açık Pozisyonlar (Binance Testnet)</h5>
+                    <div class="table-responsive">
+                        <table class="table table-dark table-striped align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Parite</th>
+                                    <th>Yön</th>
+                                    <th>Giriş Fiyatı</th>
+                                    <th>Kaldıraç</th>
+                                    <th>SL / TP</th>
+                                </tr>
+                            </thead>
+                            <tbody id="active-positions-table">
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4">Aktif açık pozisyon bulunmuyor.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Trades -->
+            <div class="col-12 col-lg-6">
+                <div class="card p-3 h-100">
+                    <h5 class="mb-3">📜 Son Kapatılan İşlemler (Geçmiş)</h5>
+                    <div class="table-responsive">
+                        <table class="table table-dark table-striped align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Parite</th>
+                                    <th>Yön</th>
+                                    <th>Kâr/Zarar ($)</th>
+                                    <th>Sonuç</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-trades-table">
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-4">Henüz gerçekleşmiş işlem geçmişi bulunmuyor.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
         async function fetchMetrics() {
             try {
-                const res = await fetch('https://nova-perp-bot-api.localtunnel.me/api/dashboard');
+                const res = await fetch('http://34.53.139.85:3001/api/dashboard');
                 const data = await res.json();
                 
-                // Sistem Aktiflik Durumu
+                // Aktiflik Durumu
                 const statusBadge = document.getElementById('system-status');
                 if (data.status === 'RUNNING') {
-                    statusBadge.className = 'text-xs font-mono font-bold px-3 py-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400';
-                    statusBadge.innerText = '● SYSTEM: ONLINE';
+                    statusBadge.className = 'badge rounded-pill px-3 py-2 fs-6 badge-running';
+                    statusBadge.innerText = '🟢 AKTİF (OTONOM)';
                 } else {
-                    statusBadge.className = 'text-xs font-mono font-bold px-3 py-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-400';
-                    statusBadge.innerText = '● SYSTEM: PAUSED';
+                    statusBadge.className = 'badge rounded-pill px-3 py-2 fs-6 badge-paused';
+                    statusBadge.innerText = '⏸️ DURDURULDU';
                 }
 
                 // İstatistikler
-                document.getElementById('klines-count').innerText = data.klines_count.toLocaleString();
+                document.getElementById('klines-count').innerText = data.klines_count;
                 document.getElementById('signals-count').innerText = data.signals_count;
                 document.getElementById('positions-count').innerText = data.active_positions.length;
-                document.getElementById('equity-val').innerText = parseFloat(data.equity).toFixed(2) + ' $';
+                document.getElementById('equity-val').innerText = data.equity.toFixed(2) + ' $';
 
                 // Aktif Pozisyonlar Tablosu
                 const posTable = document.getElementById('active-positions-table');
                 if (data.active_positions.length === 0) {
-                    posTable.innerHTML = '<tr><td colspan="5" class="text-center text-slate-500 py-10 font-sans">Şu an aktif açık pozisyon bulunmuyor.</td></tr>';
+                    posTable.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">Aktif açık pozisyon bulunmuyor.</td></tr>';
                 } else {
                     posTable.innerHTML = data.active_positions.map(p => `
-                        <tr class="hover:bg-brand-border/20 transition-colors">
-                            <td class="py-3 font-bold text-white font-sans">\${p.symbol}</td>
-                            <td class="py-3 text-center">
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold \${p.direction === 'LONG' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}">\${p.direction}</span>
-                            </td>
-                            <td class="py-3 text-right text-slate-300">\${parseFloat(p.entry_price).toFixed(2)}$</td>
-                            <td class="py-3 text-center text-slate-300">\${p.leverage}x</td>
-                            <td class="py-3 text-right text-slate-400 text-xs">
-                                <span class="text-rose-400">SL: \${parseFloat(p.stop_loss).toFixed(2)}</span><br>
-                                <span class="text-emerald-400">TP: \${parseFloat(p.take_profit).toFixed(2)}</span>
-                            </td>
+                        <tr>
+                            <td><b>\${p.symbol}</b></td>
+                            <td><span class="badge \${p.direction === 'LONG' ? 'bg-success' : 'bg-danger'}">\${p.direction}</span></td>
+                            <td>\${parseFloat(p.entry_price).toFixed(4)}$</td>
+                            <td>\${p.leverage}x</td>
+                            <td class="small">SL: \${parseFloat(p.stop_loss).toFixed(4)}<br>TP: \${parseFloat(p.take_profit).toFixed(4)}</td>
                         </tr>
                     `).join('');
                 }
 
-                // Son Kapatılan İşlemler Tablosu
+                // Son İşlemler Tablosu
                 const tradesTable = document.getElementById('recent-trades-table');
                 if (data.recent_trades.length === 0) {
-                    tradesTable.innerHTML = '<tr><td colspan="4" class="text-center text-slate-500 py-10 font-sans">Gerçekleşmiş işlem geçmişi bulunmuyor.</td></tr>';
+                    tradesTable.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">Henüz gerçekleşmiş işlem geçmişi bulunmuyor.</td></tr>';
                 } else {
                     tradesTable.innerHTML = data.recent_trades.map(t => `
-                        <tr class="hover:bg-brand-border/20 transition-colors">
-                            <td class="py-3 font-bold text-white font-sans">\${t.symbol}</td>
-                            <td class="py-3 text-center">
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold \${t.direction === 'LONG' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}">\${t.direction}</span>
-                            </td>
-                            <td class="py-3 text-right font-bold \${t.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
-                                \${t.pnl >= 0 ? '+' : ''}\${parseFloat(t.pnl).toFixed(2)}$
-                            </td>
-                            <td class="py-3 text-center">
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold \${t.result === 'TP' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}">\${t.result}</span>
-                            </td>
+                        <tr>
+                            <td><b>\${t.symbol}</b></td>
+                            <td><span class="badge \${t.direction === 'LONG' ? 'bg-success' : 'bg-danger'}">\${t.direction}</span></td>
+                            <td class="\${t.pnl >= 0 ? 'text-success' : 'text-danger'}"><b>\${t.pnl >= 0 ? '+' : ''}\${parseFloat(t.pnl).toFixed(2)}$</b></td>
+                            <td><span class="badge \${t.result === 'TP' ? 'bg-success' : 'bg-danger'}">\${t.result}</span></td>
                         </tr>
                     `).join('');
                 }
@@ -222,6 +169,7 @@
             }
         }
 
+        // İlk yükleme ve 3 saniyede bir otomatik yenileme
         fetchMetrics();
         setInterval(fetchMetrics, 3000);
     </script>
