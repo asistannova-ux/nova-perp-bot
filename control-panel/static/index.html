@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nova Perp Bot - Canlı Takip Paneli</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #0f172a; color: #e2e8f0; font-family: system-ui, -apple-system, sans-serif; }
+        .card { background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; }
+        .badge-running { background-color: #10b981; color: #fff; }
+        .badge-paused { background-color: #f59e0b; color: #fff; }
+        .stat-value { font-size: 2.2rem; font-weight: 700; color: #38bdf8; }
+        .nav-link { color: #94a3b8; }
+        .nav-link.active { color: #38bdf8 !important; }
+        .table { color: #cbd5e1; }
+        .table-dark { --bs-table-bg: #1e293b; }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h3 mb-1">🤖 Nova Perp Bot Control Panel</h1>
+                <p class="text-muted mb-0">Uçtan Uca Akıllı Otomatik Swing Trading Sistem İzleme Ekranı</p>
+            </div>
+            <div>
+                <span id="system-status" class="badge rounded-pill px-3 py-2 fs-6">YÜKLENİYOR...</span>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3">
+                <div class="card p-3 text-center">
+                    <div class="text-muted small mb-1">Cüzdan Değeri (Equity)</div>
+                    <div class="stat-value" id="equity-val">1054.45 $</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card p-3 text-center">
+                    <div class="text-muted small mb-1">Toplam Mum (Klines)</div>
+                    <div class="stat-value" id="klines-count">-</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card p-3 text-center">
+                    <div class="text-muted small mb-1">Üretilen Sinyaller</div>
+                    <div class="stat-value" id="signals-count">-</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card p-3 text-center">
+                    <div class="text-muted small mb-1">Aktif Pozisyonlar</div>
+                    <div class="stat-value text-warning" id="positions-count">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="row g-4">
+            <!-- Active Positions -->
+            <div class="col-12 col-lg-6">
+                <div class="card p-3 h-100">
+                    <h5 class="mb-3">📁 Aktif Açık Pozisyonlar (Binance Testnet)</h5>
+                    <div class="table-responsive">
+                        <table class="table table-dark table-striped align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Parite</th>
+                                    <th>Yön</th>
+                                    <th>Giriş Fiyatı</th>
+                                    <th>Kaldıraç</th>
+                                    <th>SL / TP</th>
+                                </tr>
+                            </thead>
+                            <tbody id="active-positions-table">
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4">Aktif açık pozisyon bulunmuyor.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Trades -->
+            <div class="col-12 col-lg-6">
+                <div class="card p-3 h-100">
+                    <h5 class="mb-3">📜 Son Kapatılan İşlemler (Geçmiş)</h5>
+                    <div class="table-responsive">
+                        <table class="table table-dark table-striped align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Parite</th>
+                                    <th>Yön</th>
+                                    <th>Kâr/Zarar ($)</th>
+                                    <th>Sonuç</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-trades-table">
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-4">Henüz gerçekleşmiş işlem geçmişi bulunmuyor.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function fetchMetrics() {
+            try {
+                const res = await fetch('/api/dashboard');
+                const data = await res.json();
+                
+                // Aktiflik Durumu
+                const statusBadge = document.getElementById('system-status');
+                if (data.status === 'RUNNING') {
+                    statusBadge.className = 'badge rounded-pill px-3 py-2 fs-6 badge-running';
+                    statusBadge.innerText = '🟢 AKTİF (OTONOM)';
+                } else {
+                    statusBadge.className = 'badge rounded-pill px-3 py-2 fs-6 badge-paused';
+                    statusBadge.innerText = '⏸️ DURDURULDU';
+                }
+
+                // İstatistikler
+                document.getElementById('klines-count').innerText = data.klines_count;
+                document.getElementById('signals-count').innerText = data.signals_count;
+                document.getElementById('positions-count').innerText = data.active_positions.length;
+                document.getElementById('equity-val').innerText = data.equity.toFixed(2) + ' $';
+
+                // Aktif Pozisyonlar Tablosu
+                const posTable = document.getElementById('active-positions-table');
+                if (data.active_positions.length === 0) {
+                    posTable.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">Aktif açık pozisyon bulunmuyor.</td></tr>';
+                } else {
+                    posTable.innerHTML = data.active_positions.map(p => `
+                        <tr>
+                            <td><b>\${p.symbol}</b></td>
+                            <td><span class="badge \${p.direction === 'LONG' ? 'bg-success' : 'bg-danger'}">\${p.direction}</span></td>
+                            <td>\${parseFloat(p.entry_price).toFixed(4)}$</td>
+                            <td>\${p.leverage}x</td>
+                            <td class="small">SL: \${parseFloat(p.stop_loss).toFixed(4)}<br>TP: \${parseFloat(p.take_profit).toFixed(4)}</td>
+                        </tr>
+                    `).join('');
+                }
+
+                // Son İşlemler Tablosu
+                const tradesTable = document.getElementById('recent-trades-table');
+                if (data.recent_trades.length === 0) {
+                    tradesTable.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">Henüz gerçekleşmiş işlem geçmişi bulunmuyor.</td></tr>';
+                } else {
+                    tradesTable.innerHTML = data.recent_trades.map(t => `
+                        <tr>
+                            <td><b>\${t.symbol}</b></td>
+                            <td><span class="badge \${t.direction === 'LONG' ? 'bg-success' : 'bg-danger'}">\${t.direction}</span></td>
+                            <td class="\${t.pnl >= 0 ? 'text-success' : 'text-danger'}"><b>\${t.pnl >= 0 ? '+' : ''}\${parseFloat(t.pnl).toFixed(2)}$</b></td>
+                            <td><span class="badge \${t.result === 'TP' ? 'bg-success' : 'bg-danger'}">\${t.result}</span></td>
+                        </tr>
+                    `).join('');
+                }
+
+            } catch (err) {
+                console.error("Metrikler çekilemedi:", err);
+            }
+        }
+
+        // İlk yükleme ve 3 saniyede bir otomatik yenileme
+        fetchMetrics();
+        setInterval(fetchMetrics, 3000);
+    </script>
+</body>
+</html>

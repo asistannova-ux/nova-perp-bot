@@ -1,0 +1,132 @@
+version: '3.8'
+
+services:
+  timescaledb:
+    image: timescale/timescaledb:latest-pg15
+    container_name: swing_timescaledb
+    restart: always
+    environment:
+      POSTGRES_DB: swing_bot
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    networks:
+      - bot_network
+
+  redis:
+    image: redis:alpine
+    container_name: swing_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - bot_network
+
+  data-collector:
+    build: ./data-collector
+    container_name: swing_data_collector
+    restart: always
+    depends_on:
+      - timescaledb
+      - redis
+    env_file:
+      - .env
+    networks:
+      - bot_network
+
+  strategy-engine:
+    build: ./strategy-engine
+    container_name: swing_strategy_engine
+    restart: always
+    depends_on:
+      - redis
+    env_file:
+      - .env
+    networks:
+      - bot_network
+
+  risk-manager:
+    build: ./risk-manager
+    container_name: swing_risk_manager
+    restart: always
+    depends_on:
+      - redis
+    env_file:
+      - .env
+    networks:
+      - bot_network
+
+  executor:
+    build: ./executor
+    container_name: swing_executor
+    restart: always
+    depends_on:
+      - redis
+    env_file:
+      - .env
+    networks:
+      - bot_network
+
+  telegram-bot:
+    build: ./telegram-bot
+    container_name: swing_telegram_bot
+    restart: always
+    depends_on:
+      - redis
+    env_file:
+      - .env
+    networks:
+      - bot_network
+
+  control-panel:
+    build: ./control-panel
+    container_name: swing_control_panel
+    restart: always
+    ports:
+      - "3001:3001"
+    depends_on:
+      - timescaledb
+      - redis
+    env_file:
+      - .env
+    networks:
+      - bot_network
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: swing_prometheus
+    restart: always
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - bot_network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: swing_grafana
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - bot_network
+
+volumes:
+  timescaledb_data:
+  redis_data:
+  grafana_data:
+
+networks:
+  bot_network:
+    driver: bridge

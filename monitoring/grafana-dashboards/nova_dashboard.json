@@ -1,0 +1,60 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "nova_perp_bot_metrics",
+    "title": "Nova Perp Bot Dashboard",
+    "tags": ["trading", "prometheus"],
+    "timezone": "browser",
+    "schemaVersion": 36,
+    "version": 2,
+    "refresh": "5s",
+    "panels": [
+      {
+        "type": "stat",
+        "title": "Sistem Aktiflik Durumu",
+        "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+        "targets": [
+          {
+            "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "expr": "data_collector_ws_errors_total == 0"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              { "type": "value", "options": { "1": { "text": "YAYINDA (WS OK)", "color": "green" }, "0": { "text": "HATA VAR", "color": "red" } } }
+            ]
+          }
+        }
+      },
+      {
+        "type": "stat",
+        "title": "Gönderilen Toplam Emir",
+        "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+        "targets": [
+          {
+            "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "expr": "sum(executor_orders_sent_total) or vector(0)"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": { "mode": "fixed", "fixedColor": "blue" }
+          }
+        }
+      },
+      {
+        "type": "timeseries",
+        "title": "Üretilen Sinyal Akışı (Yön Bazlı)",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+        "targets": [
+          {
+            "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "expr": "sum(rate(strategy_engine_signals_generated_total[5m])) by (symbol, direction)"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "nova-control-panel",
+  "version": "1.0.0",
+  "description": "Nova Perp Bot Custom Control Panel",
+  "main": "server.js",
+  "dependencies": {
+    "express": "^4.19.2",
+    "pg": "^8.12.0",
+    "redis": "^4.6.15"
+  }
+}

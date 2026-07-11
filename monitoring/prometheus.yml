@@ -1,0 +1,29 @@
+# Prometheus config
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'data-collector'
+    static_configs:
+      - targets: ['data-collector:8000']
+
+  - job_name: 'strategy-engine'
+    static_configs:
+      - targets: ['strategy-engine:8000']
+
+  - job_name: 'risk-manager'
+    static_configs:
+      - targets: ['risk-manager:8000']
+
+  - job_name: 'executor'
+    static_configs:
+      - targets: ['executor:8000']
+
+  - job_name: 'telegram-bot'
+    static_configs:
+      - targets: ['telegram-bot:8000']
