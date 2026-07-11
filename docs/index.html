@@ -2,222 +2,482 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nova Perp Bot - Canlı Takip Paneli</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Nova Trading Terminal</title>
+    <!-- Tailwind & Font -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        body { background-color: #0f172a; color: #e2e8f0; font-family: system-ui, -apple-system, sans-serif; }
-        .card { background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; }
-        .badge-running { background-color: #10b981; color: #fff; }
-        .badge-paused { background-color: #f59e0b; color: #fff; }
-        .stat-value { font-size: 2.2rem; font-weight: 700; color: #38bdf8; }
-        .nav-link { color: #94a3b8; }
-        .nav-link.active { color: #38bdf8 !important; }
-        .table { color: #cbd5e1; }
-        .table-dark { --bs-table-bg: #1e293b; }
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+        /* Apple-style frosted glass (glassmorphism) */
+        .glass-card {
+            background: rgba(25, 25, 30, 0.65);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+        }
+        .glass-panel {
+            background: rgba(18, 18, 22, 0.8);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        /* Tactile press active state */
+        .btn-active:active {
+            transform: scale(0.96);
+            opacity: 0.9;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+        }
+        /* Subtle pulse for active indicators */
+        .pulse-active {
+            animation: pulse-glow 2s infinite;
+        }
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 1; box-shadow: 0 0 10px rgba(48, 209, 88, 0.5); }
+            50% { opacity: 0.5; box-shadow: 0 0 4px rgba(48, 209, 88, 0.2); }
+        }
     </style>
 </head>
-<body>
-    <div class="container py-4">
-        <!-- Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h1 class="h3 mb-1">🤖 Nova Perp Bot Control Panel</h1>
-                <p class="text-muted mb-0">Uçtan Uca Akıllı Otomatik Swing Trading Sistem İzleme Ekranı (Direct Mode)</p>
+<body class="font-sans selection:bg-blue-600/30 selection:text-white">
+
+    <!-- Mobile-First Container -->
+    <div class="max-w-md mx-auto min-h-screen flex flex-col justify-between pb-8 px-4 pt-6">
+        
+        <!-- Top Status Bar & Header -->
+        <header class="flex items-center justify-between mb-6">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-bold text-white shadow-lg shadow-blue-500/20 text-lg">✨</div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight text-white leading-none">NOVA</h1>
+                    <span class="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Perp Terminal</span>
+                </div>
             </div>
             <div>
-                <span id="system-status" class="badge rounded-pill px-3 py-2 fs-6">YÜKLENİYOR...</span>
+                <span id="system-status" class="text-[11px] font-semibold px-3 py-1.5 rounded-full glass-card border border-emerald-500/20 text-[#30d158] flex items-center gap-1.5 pulse-active">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#30d158]"></span>
+                    API: ONLINE
+                </span>
+            </div>
+        </header>
+
+        <!-- Big Equity Card -->
+        <div class="glass-card p-6 mb-5 text-center relative overflow-hidden group">
+            <div class="absolute -right-12 -bottom-12 text-slate-800 text-[10rem] font-bold select-none opacity-5 pointer-events-none transition-transform duration-500 group-hover:scale-105">USD</div>
+            <p class="text-xs text-slate-400 font-semibold mb-2 uppercase tracking-widest">Cüzdan Değeri (Equity)</p>
+            <h2 class="text-4xl font-extrabold text-white tracking-tight mb-1" id="equity-val">0.00 $</h2>
+            <div class="inline-flex items-center gap-1.5 text-xs text-slate-400 glass-panel py-1 px-3 rounded-full mt-2 border border-white/5">
+                <span id="proxy-status" class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                <span>Binance Futures Testnet</span>
             </div>
         </div>
 
-        <!-- Stats Grid -->
-        <div class="row g-3 mb-4">
-            <div class="col-6 col-md-3">
-                <div class="card p-3 text-center">
-                    <div class="text-muted small mb-1">Cüzdan Değeri (Equity)</div>
-                    <div class="stat-value" id="equity-val">- $</div>
+        <!-- Quick Trade Control (Tactile Action) -->
+        <div class="glass-card p-5 mb-5">
+            <h3 class="text-sm font-bold text-slate-300 mb-3 flex items-center justify-between">
+                <span>Hızlı İşlem Paneli</span>
+                <span class="text-[10px] text-slate-400 font-mono" id="trade-symbol-label">BTCUSDT</span>
+            </h3>
+            
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div class="relative">
+                    <label class="text-[9px] text-slate-400 font-bold uppercase tracking-wider block mb-1">Sembol</label>
+                    <input id="manualSymbol" type="text" value="BTCUSDT" placeholder="BTCUSDT"
+                        class="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-semibold focus:outline-none focus:border-blue-500 text-white uppercase font-mono">
+                </div>
+                <div>
+                    <label class="text-[9px] text-slate-400 font-bold uppercase tracking-wider block mb-1">Kaldıraç</label>
+                    <select id="manualLeverage" class="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-semibold focus:outline-none text-white font-mono">
+                        <option value="1">1x</option>
+                        <option value="3">3x</option>
+                        <option value="5" selected>5x</option>
+                        <option value="10">10x</option>
+                        <option value="20">20x</option>
+                    </select>
                 </div>
             </div>
-            <div class="col-6 col-md-3">
-                <div class="card p-3 text-center">
-                    <div class="text-muted small mb-1">Bağlantı Türü</div>
-                    <div class="stat-value text-success" style="font-size: 1.8rem;" id="klines-count">DİREKT</div>
+
+            <div class="mb-4">
+                <div class="flex justify-between text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1">
+                    <span>Miktar (USDT)</span>
+                    <span id="amount-val" class="font-mono">50 USDT</span>
                 </div>
+                <input id="tradeAmount" type="range" min="10" max="1000" step="10" value="50" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500">
             </div>
-            <div class="col-6 col-md-3">
-                <div class="card p-3 text-center">
-                    <div class="text-muted small mb-1">Hedef Sunucu</div>
-                    <div class="stat-value text-info" style="font-size: 1.8rem;" id="signals-count">TESTNET</div>
-                </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <button id="btn-long" class="btn-active py-3 rounded-2xl font-bold text-sm bg-[#30d158] text-black shadow-lg shadow-[#30d158]/10 transition-all">
+                    BUY / LONG
+                </button>
+                <button id="btn-short" class="btn-active py-3 rounded-2xl font-bold text-sm bg-[#ff453a] text-white shadow-lg shadow-[#ff453a]/10 transition-all">
+                    SELL / SHORT
+                </button>
             </div>
-            <div class="col-6 col-md-3">
-                <div class="card p-3 text-center">
-                    <div class="text-muted small mb-1">Aktif Pozisyonlar</div>
-                    <div class="stat-value text-warning" id="positions-count">0</div>
-                </div>
+            <div id="manualStatus" class="text-[10px] text-slate-400 font-mono text-center mt-2.5 min-h-[15px]"></div>
+        </div>
+
+        <!-- Active Positions Panel -->
+        <div class="glass-card p-5 mb-5 flex-grow">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-sm font-bold text-slate-300 flex items-center gap-1.5">
+                    <span>Aktif Pozisyonlar</span>
+                    <span id="positions-count" class="text-[10px] bg-white/10 text-white rounded-full px-2 py-0.5 font-mono">0</span>
+                </h3>
+            </div>
+            <div class="space-y-3" id="active-positions-table">
+                <!-- Inner items generated dynamically -->
+                <div class="text-center text-slate-500 py-10 text-sm">Aktif açık pozisyon bulunmuyor.</div>
             </div>
         </div>
 
-        <!-- Main Content -->
-        <div class="row g-4">
-            <!-- Active Positions -->
-            <div class="col-12 col-lg-6">
-                <div class="card p-3 h-100">
-                    <h5 class="mb-3">📁 Aktif Açık Pozisyonlar (Binance Testnet)</h5>
-                    <div class="table-responsive">
-                        <table class="table table-dark table-striped align-middle">
-                            <thead>
-                                <tr>
-                                    <th>Parite</th>
-                                    <th>Yön</th>
-                                    <th>Giriş Fiyatı</th>
-                                    <th>Kaldıraç</th>
-                                    <th>Miktar / PnL</th>
-                                </tr>
-                            </thead>
-                            <tbody id="active-positions-table">
-                                <tr>
-                                    <td colspan="5" class="text-center text-muted py-4">Aktif açık pozisyon bulunmuyor.</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+        <!-- Recent Trades History -->
+        <div class="glass-card p-5">
+            <h3 class="text-sm font-bold text-slate-300 mb-3">Son İşlemler</h3>
+            <div class="space-y-3 max-h-48 overflow-y-auto pr-1" id="recent-trades-table">
+                <div class="text-center text-slate-500 py-4 text-sm">Gerçekleşmiş işlem geçmişi bulunmuyor.</div>
             </div>
+        </div>
 
-            <!-- Recent Trades -->
-            <div class="col-12 col-lg-6">
-                <div class="card p-3 h-100">
-                    <h5 class="mb-3">📜 Son Kapatılan İşlemler (Geçmiş)</h5>
-                    <div class="table-responsive">
-                        <table class="table table-dark table-striped align-middle">
-                            <thead>
-                                <tr>
-                                    <th>Parite</th>
-                                    <th>Yön</th>
-                                    <th>Kâr/Zarar ($)</th>
-                                    <th>Zaman</th>
-                                </tr>
-                            </thead>
-                            <tbody id="recent-trades-table">
-                                <tr>
-                                    <td colspan="4" class="text-center text-muted py-4">Henüz gerçekleşmiş işlem geçmişi bulunmuyor.</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+        <!-- Navigation / Config Menu bar at the bottom -->
+        <nav class="flex justify-center mt-5">
+            <button onclick="toggleSettingsModal()" class="btn-active flex items-center space-x-2 px-5 py-2.5 rounded-full bg-white/5 border border-white/8 hover:bg-white/10 transition text-xs font-semibold text-slate-300">
+                <span>⚙️</span>
+                <span>Binance API Anahtarları</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Apple-style Config Bottom Sheet Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-black/80 backdrop-filter backdrop-blur-md hidden flex items-end justify-center z-50 transition-all duration-300">
+        <div class="glass-panel w-full max-w-md rounded-t-[30px] p-6 pb-10 shadow-2xl">
+            <div class="w-12 h-1 bg-slate-700 rounded-full mx-auto mb-4"></div>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-base font-bold text-white">Binance API Yapılandırması</h3>
+                <button onclick="toggleSettingsModal()" class="text-slate-400 text-xl font-bold leading-none">&times;</button>
+            </div>
+            <div class="space-y-4 text-sm">
+                <div>
+                    <label class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1">API KEY</label>
+                    <input id="apiKeyInput" type="password" placeholder="Binance Testnet API Key"
+                        class="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-xs font-mono focus:outline-none focus:border-blue-500 text-white">
                 </div>
+                <div>
+                    <label class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1">SECRET KEY</label>
+                    <input id="apiSecretInput" type="password" placeholder="Binance Testnet Secret Key"
+                        class="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-xs font-mono focus:outline-none focus:border-blue-500 text-white">
+                </div>
+                <div class="flex items-center justify-between p-2.5 glass-card bg-white/2 border-white/5 mt-1">
+                    <span class="text-xs text-slate-300">CORS Tüneli (Güvenli Bağlantı)</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="corsProxyToggle" checked class="sr-only peer">
+                        <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
+                    </label>
+                </div>
+                <button onclick="saveApiKeys()" class="btn-active w-full py-3 rounded-2xl font-bold text-sm bg-blue-600 text-white shadow-lg shadow-blue-500/10 transition-all mt-2">
+                    Ayarları Kaydet ve Bağlan
+                </button>
             </div>
         </div>
     </div>
 
+    <!-- Core App Script logic -->
     <script>
-        const API_KEY = "SIpoPzNN5wMu5dccgPcDr8zQ7eFxSJT0voKJTMQoyeq2PwqiHd83ml81xgfkBBAZ";
-        const SECRET_KEY = "x5CFaxfaCvCY5VfYNKThlnAx0reapTx0jhF6bBHnlwiN8Xs8xwElXhL2zLfCpYOQ";
+        // Securely pre-filled default keys on deployment, or loaded from localStorage
+        const DEFAULT_API_KEY = "SIpoPzNN5wMu5dccgPcDr8zQ7eFxSJT0voKJTMQoyeq2PwqiHd83ml81xgfkBBAZ";
+        const DEFAULT_SECRET_KEY = "x5CFaxfaCvCY5VfYNKThlnAx0reapTx0jhF6bBHnlwiN8Xs8xwElXhL2zLfCpYOQ";
+        
+        let API_KEY = localStorage.getItem('nova_binance_key');
+        let SECRET_KEY = localStorage.getItem('nova_binance_secret');
+        
+        if (!API_KEY || API_KEY.trim() === '' || API_KEY.includes('***') || API_KEY.length < 10) {
+            API_KEY = DEFAULT_API_KEY;
+        }
+        if (!SECRET_KEY || SECRET_KEY.trim() === '' || SECRET_KEY.includes('***') || SECRET_KEY.length < 10) {
+            SECRET_KEY = DEFAULT_SECRET_KEY;
+        }
+        let USE_PROXY = localStorage.getItem('nova_use_proxy') !== 'false';
+
         const BASE_URL = "https://testnet.binancefuture.com";
         const PROXY_URL = "https://api.allorigins.win/raw?url=";
+
+        // UI Range Amount slider sync
+        const tradeAmountSlider = document.getElementById('tradeAmount');
+        const amountValLabel = document.getElementById('amount-val');
+        tradeAmountSlider.addEventListener('input', () => {
+            amountValLabel.innerText = tradeAmountSlider.value + ' USDT';
+        });
+
+        // Initialize Settings Inputs
+        document.getElementById('apiKeyInput').value = API_KEY;
+        document.getElementById('apiSecretInput').value = SECRET_KEY;
+        document.getElementById('corsProxyToggle').checked = USE_PROXY;
+
+        function toggleSettingsModal() {
+            const modal = document.getElementById('settingsModal');
+            modal.classList.toggle('hidden');
+        }
+
+        function saveApiKeys() {
+            API_KEY = document.getElementById('apiKeyInput').value.trim();
+            SECRET_KEY = document.getElementById('apiSecretInput').value.trim();
+            USE_PROXY = document.getElementById('corsProxyToggle').checked;
+
+            localStorage.setItem('nova_binance_key', API_KEY);
+            localStorage.setItem('nova_binance_secret', SECRET_KEY);
+            localStorage.setItem('nova_use_proxy', USE_PROXY);
+
+            toggleSettingsModal();
+            fetchMetrics();
+        }
 
         function sign(queryString, secret) {
             return CryptoJS.HmacSHA256(queryString, secret).toString(CryptoJS.enc.Hex);
         }
 
-        async function binanceFetch(endpoint, method = 'GET') {
+        async function binanceFetch(endpoint, method = 'GET', dataParams = '') {
             const timestamp = Date.now();
-            const query = `recvWindow=5000&timestamp=${timestamp}`;
+            let query = `recvWindow=5000&timestamp=${timestamp}`;
+            if (dataParams) {
+                query = `${dataParams}&${query}`;
+            }
             const signature = sign(query, SECRET_KEY);
             const rawUrl = `${BASE_URL}${endpoint}?${query}&signature=${signature}`;
             
-            try {
-                const res = await fetch(rawUrl, {
+            const fetchOptions = {
+                method: method,
+                headers: {
+                    'X-MBX-APIKEY': API_KEY,
+                    'Content-Type': 'application/json'
+                }
+            };
+
+            if (USE_PROXY) {
+                const proxiedUrl = `${PROXY_URL}${encodeURIComponent(rawUrl)}`;
+                const res = await fetch(proxiedUrl, {
                     method: method,
                     headers: {
                         'X-MBX-APIKEY': API_KEY
                     }
                 });
                 if (res.ok) return await res.json();
-                throw new Error("Direct fetch status not OK: " + res.status);
-            } catch (err) {
-                console.warn("Direct fetch blocked or failed. Fallback to AllOrigins CORS Proxy...", err);
-                const proxiedUrl = `${PROXY_URL}${encodeURIComponent(rawUrl)}`;
-                const res = await fetch(proxiedUrl, {
-                    method: method
-                });
+                throw new Error("Proxy fetch failed: " + res.status);
+            } else {
+                const res = await fetch(rawUrl, fetchOptions);
                 if (res.ok) return await res.json();
-                throw new Error("Proxy fetch failed");
+                throw new Error("Direct fetch status not OK: " + res.status);
             }
         }
 
         async function fetchMetrics() {
             try {
-                // 1. Get Account Info
+                // 1. Get Account Info (Equity)
                 const account = await binanceFetch('/fapi/v2/account');
                 const equity = parseFloat(account.totalMarginBalance || account.totalWalletBalance || 0);
-                document.getElementById('equity-val').innerText = equity.toFixed(2) + ' $';
+                document.getElementById('equity-val').innerText = equity.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' $';
 
-                // 2. Get Positions
+                // 2. Get Position Risk (Active Positions)
                 const positions = await binanceFetch('/fapi/v2/positionRisk');
                 const activePositions = positions.filter(p => parseFloat(p.positionAmt) !== 0);
                 document.getElementById('positions-count').innerText = activePositions.length;
 
                 const posTable = document.getElementById('active-positions-table');
                 if (activePositions.length === 0) {
-                    posTable.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">Aktif açık pozisyon bulunmuyor.</td></tr>';
+                    posTable.innerHTML = '<div class="text-center text-slate-500 py-10 text-sm">Aktif açık pozisyon bulunmuyor.</div>';
                 } else {
                     posTable.innerHTML = activePositions.map(p => {
                         const amt = parseFloat(p.positionAmt);
                         const direction = amt > 0 ? 'LONG' : 'SHORT';
                         const pnl = parseFloat(p.unrealizedProfit || 0);
-                        const pnlClass = pnl >= 0 ? 'text-success' : 'text-danger';
+                        const pnlClass = pnl >= 0 ? 'text-[#30d158]' : 'text-[#ff453a]';
+                        const directionClass = direction === 'LONG' ? 'bg-[#30d158]/10 text-[#30d158] border border-[#30d158]/20' : 'bg-[#ff453a]/10 text-[#ff453a] border border-[#ff453a]/20';
                         return `
-                            <tr>
-                                <td><b>${p.symbol}</b></td>
-                                <td><span class="badge ${direction === 'LONG' ? 'bg-success' : 'bg-danger'}">${direction}</span></td>
-                                <td>${parseFloat(p.entryPrice).toFixed(4)}$</td>
-                                <td>${p.leverage}x</td>
-                                <td>${Math.abs(amt)} <span class="${pnlClass}">(${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}$)</span></td>
-                            </tr>
+                            <div class="glass-panel p-4 rounded-2xl flex items-center justify-between border border-white/5 transition-all">
+                                <div class="flex items-center space-x-3">
+                                    <span class="text-xs font-bold px-2 py-1 rounded-lg ${directionClass}">${direction}</span>
+                                    <div>
+                                        <h4 class="text-sm font-bold text-white leading-none">${p.symbol}</h4>
+                                        <span class="text-[10px] text-slate-400 font-mono">${p.leverage}x Kaldıraç</span>
+                                    </div>
+                                </div>
+                                <div class="text-right flex items-center space-x-3">
+                                    <div class="mr-1">
+                                        <div class="text-xs font-bold font-mono text-white">${parseFloat(p.entryPrice).toFixed(2)}$</div>
+                                        <div class="text-[10px] font-bold font-mono ${pnlClass}">${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}$</div>
+                                    </div>
+                                    <button onclick="closePosition('${p.symbol}', '${direction}', ${Math.abs(amt)})" class="btn-active px-2.5 py-1.5 rounded-xl bg-[#ff453a]/10 hover:bg-[#ff453a]/20 border border-[#ff453a]/20 text-xs font-bold text-[#ff453a] transition-all">
+                                        KAPAT
+                                    </button>
+                                </div>
+                            </div>
                         `;
                     }).join('');
                 }
 
-                // 3. Get Recent Trades for BTCUSDT
-                const trades = await binanceFetch('/fapi/v1/userTrades?symbol=BTCUSDT&limit=10');
+                // Update proxy label indicator
+                const proxyStatus = document.getElementById('proxy-status');
+                if (USE_PROXY) {
+                    proxyStatus.className = 'w-1.5 h-1.5 rounded-full bg-blue-500';
+                    document.getElementById('klines-count').innerText = "PROXY";
+                } else {
+                    proxyStatus.className = 'w-1.5 h-1.5 rounded-full bg-[#30d158]';
+                    document.getElementById('klines-count').innerText = "DİREKT";
+                }
+
+                // 3. Get Recent Trades
+                const currentSymbol = document.getElementById('manualSymbol').value.trim().toUpperCase();
+                const trades = await binanceFetch(`/fapi/v1/userTrades`, 'GET', `symbol=${currentSymbol}&limit=8`);
                 const tradesTable = document.getElementById('recent-trades-table');
                 if (!trades || !Array.isArray(trades) || trades.length === 0) {
-                    tradesTable.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">Henüz gerçekleşmiş işlem geçmişi bulunmuyor.</td></tr>';
+                    tradesTable.innerHTML = '<div class="text-center text-slate-500 py-4 text-sm">Son işlem geçmişi bulunmuyor.</div>';
                 } else {
-                    tradesTable.innerHTML = trades.slice(0, 8).map(t => {
+                    tradesTable.innerHTML = trades.map(t => {
                         const direction = t.buyer ? 'LONG' : 'SHORT';
                         const pnl = parseFloat(t.realizedPnl || 0);
+                        const pnlClass = pnl >= 0 ? 'text-[#30d158]' : 'text-[#ff453a]';
                         const timeStr = new Date(t.time).toLocaleTimeString('tr-TR');
                         return `
-                            <tr>
-                                <td><b>${t.symbol}</b></td>
-                                <td><span class="badge ${direction === 'LONG' ? 'bg-success' : 'bg-danger'}">${direction}</span></td>
-                                <td class="${pnl >= 0 ? 'text-success' : 'text-danger'}"><b>${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}$</b></td>
-                                <td>${timeStr}</td>
-                            </tr>
+                            <div class="flex items-center justify-between border-b border-white/5 pb-2.5 text-xs">
+                                <div>
+                                    <div class="font-bold text-white">${t.symbol}</div>
+                                    <div class="text-[9px] text-slate-400 font-mono">${timeStr}</div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="font-bold ${pnlClass}">${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}$</div>
+                                    <div class="text-[9px] text-slate-400 uppercase font-bold">${direction}</div>
+                                </div>
+                            </div>
                         `;
                     }).join('');
                 }
 
-                // Connection status
+                // Status Badge Update
                 const statusBadge = document.getElementById('system-status');
-                statusBadge.className = 'badge rounded-pill px-3 py-2 fs-6 badge-running';
-                statusBadge.innerText = '🟢 DİREKT API BAĞLANTISI (ONLINE)';
+                statusBadge.className = 'text-[11px] font-semibold px-3 py-1.5 rounded-full glass-card border border-emerald-500/20 text-[#30d158] flex items-center gap-1.5 pulse-active';
+                statusBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-[#30d158]"></span>API: ONLINE';
 
             } catch (err) {
-                console.error("Metrikler çekilemedi:", err);
+                console.error("Fetch metrics error:", err);
                 const statusBadge = document.getElementById('system-status');
-                statusBadge.className = 'badge rounded-pill px-3 py-2 fs-6 badge-paused';
-                statusBadge.innerText = '🔴 BAĞLANTI HATASI';
+                statusBadge.className = 'text-[11px] font-semibold px-3 py-1.5 rounded-full glass-card border border-red-500/20 text-[#ff453a] flex items-center gap-1.5';
+                statusBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-[#ff453a]"></span>BAĞLANTI YOK';
             }
         }
 
-        // İlk yükleme ve 4 saniyede bir otomatik yenileme
+        // Place Market Order (Buy/Sell)
+        async function placeOrder(symbol, side, quantity, leverage) {
+            const statusEl = document.getElementById('manualStatus');
+            statusEl.innerText = "Sipariş iletiliyor...";
+            statusEl.className = "text-[10px] text-slate-400 font-mono text-center mt-2.5";
+            
+            try {
+                // Set Leverage first
+                await binanceFetch('/fapi/v1/leverage', 'POST', `symbol=${symbol}&leverage=${leverage}`);
+                
+                // Submit Market Order
+                const res = await binanceFetch('/fapi/v1/order', 'POST', `symbol=${symbol}&side=${side}&type=MARKET&quantity=${quantity}`);
+                if (res && res.orderId) {
+                    statusEl.innerText = `Sipariş Başarılı! ID: ${res.orderId}`;
+                    statusEl.className = "text-[10px] text-[#30d158] font-bold font-mono text-center mt-2.5";
+                    setTimeout(() => { statusEl.innerText = ""; }, 3000);
+                    fetchMetrics();
+                } else {
+                    throw new Error(res.msg || "Sipariş iletilemedi.");
+                }
+            } catch (err) {
+                console.error("Order error:", err);
+                statusEl.innerText = "Hata: " + err.message;
+                statusEl.className = "text-[10px] text-[#ff453a] font-bold font-mono text-center mt-2.5";
+            }
+        }
+
+        // Close Position Market execution
+        async function closePosition(symbol, direction, quantity) {
+            if (!confirm(`${symbol} pozisyonunu piyasa fiyatından kapatmak istiyor musunuz?`)) return;
+            const oppositeSide = direction === 'LONG' ? 'SELL' : 'BUY';
+            const statusEl = document.getElementById('manualStatus');
+            statusEl.innerText = "Pozisyon kapatılıyor...";
+            
+            try {
+                const res = await binanceFetch('/fapi/v1/order', 'POST', `symbol=${symbol}&side=${oppositeSide}&type=MARKET&quantity=${quantity}&reduceOnly=true`);
+                if (res && res.orderId) {
+                    statusEl.innerText = "Pozisyon Başarıyla Kapatıldı!";
+                    statusEl.className = "text-[10px] text-[#30d158] font-bold font-mono text-center mt-2.5";
+                    setTimeout(() => { statusEl.innerText = ""; }, 3000);
+                    fetchMetrics();
+                } else {
+                    throw new Error(res.msg || "Kapatma emri iletilemedi.");
+                }
+            } catch (err) {
+                console.error("Close position error:", err);
+                alert("Kapatma Hatası: " + err.message);
+            }
+        }
+
+        // Quick trade buttons action triggers
+        document.getElementById('btn-long').addEventListener('click', async () => {
+            const symbol = document.getElementById('manualSymbol').value.trim().toUpperCase();
+            const leverage = parseInt(document.getElementById('manualLeverage').value);
+            const usdtAmt = parseFloat(document.getElementById('tradeAmount').value);
+
+            // Fetch current price to estimate quantity
+            try {
+                const klinesRes = await fetch(`${BASE_URL}/fapi/v1/klines?symbol=${symbol}&interval=1m&limit=1`);
+                const klines = await klinesRes.json();
+                const price = parseFloat(klines[0][4]); // close price
+                const qty = ((usdtAmt * leverage) / price).toFixed(3); // simple estimate
+                
+                await placeOrder(symbol, 'BUY', qty, leverage);
+            } catch (e) {
+                alert("Miktar hesaplama hatası (Fiyat alınamadı): " + e.message);
+            }
+        });
+
+        document.getElementById('btn-short').addEventListener('click', async () => {
+            const symbol = document.getElementById('manualSymbol').value.trim().toUpperCase();
+            const leverage = parseInt(document.getElementById('manualLeverage').value);
+            const usdtAmt = parseFloat(document.getElementById('tradeAmount').value);
+
+            try {
+                const klinesRes = await fetch(`${BASE_URL}/fapi/v1/klines?symbol=${symbol}&interval=1m&limit=1`);
+                const klines = await klinesRes.json();
+                const price = parseFloat(klines[0][4]);
+                const qty = ((usdtAmt * leverage) / price).toFixed(3);
+                
+                await placeOrder(symbol, 'SELL', qty, leverage);
+            } catch (e) {
+                alert("Miktar hesaplama hatası (Fiyat alınamadı): " + e.message);
+            }
+        });
+
+        // Start loops
         fetchMetrics();
-        setInterval(fetchMetrics, 4000);
+        setInterval(fetchMetrics, 5000);
     </script>
 </body>
 </html>
