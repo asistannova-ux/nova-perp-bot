@@ -224,7 +224,7 @@
         let USE_PROXY = localStorage.getItem('nova_use_proxy') !== 'false';
 
         const BASE_URL = "https://testnet.binancefuture.com";
-        const PROXY_URL = "https://api.allorigins.win/raw?url=";
+        const PROXY_URL = "https://thingproxy.freeboard.io/fetch/";
 
         // UI Range Amount slider sync
         const tradeAmountSlider = document.getElementById('tradeAmount');
@@ -272,8 +272,7 @@
             const fetchOptions = {
                 method: method,
                 headers: {
-                    'X-MBX-APIKEY': API_KEY,
-                    'Content-Type': 'application/json'
+                    'X-MBX-APIKEY': API_KEY
                 }
             };
 
