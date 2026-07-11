@@ -114,7 +114,7 @@
     <script>
         async function fetchMetrics() {
             try {
-                const res = await fetch('/api/dashboard');
+                const res = await fetch('http://130.211.103.175:3001/api/dashboard');
                 const data = await res.json();
                 
                 // Aktiflik Durumu
