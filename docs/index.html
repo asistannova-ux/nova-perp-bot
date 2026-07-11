@@ -173,7 +173,7 @@
                 document.getElementById('klines-count').innerText = data.klines_count.toLocaleString();
                 document.getElementById('signals-count').innerText = data.signals_count;
                 document.getElementById('positions-count').innerText = data.active_positions.length;
-                document.getElementById('equity-val').innerText = data.equity.toFixed(2) + ' $';
+                document.getElementById('equity-val').innerText = parseFloat(data.equity).toFixed(2) + ' $';
 
                 // Aktif Pozisyonlar Tablosu
                 const posTable = document.getElementById('active-positions-table');
