@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nova Perp Bot - Canlı Takip Paneli</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
         body { background-color: #0f172a; color: #e2e8f0; font-family: system-ui, -apple-system, sans-serif; }
         .card { background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; }
@@ -23,7 +24,7 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h1 class="h3 mb-1">🤖 Nova Perp Bot Control Panel</h1>
-                <p class="text-muted mb-0">Uçtan Uca Akıllı Otomatik Swing Trading Sistem İzleme Ekranı</p>
+                <p class="text-muted mb-0">Uçtan Uca Akıllı Otomatik Swing Trading Sistem İzleme Ekranı (Direct Mode)</p>
             </div>
             <div>
                 <span id="system-status" class="badge rounded-pill px-3 py-2 fs-6">YÜKLENİYOR...</span>
@@ -35,19 +36,19 @@
             <div class="col-6 col-md-3">
                 <div class="card p-3 text-center">
                     <div class="text-muted small mb-1">Cüzdan Değeri (Equity)</div>
-                    <div class="stat-value" id="equity-val">1054.45 $</div>
+                    <div class="stat-value" id="equity-val">- $</div>
                 </div>
             </div>
             <div class="col-6 col-md-3">
                 <div class="card p-3 text-center">
-                    <div class="text-muted small mb-1">Toplam Mum (Klines)</div>
-                    <div class="stat-value" id="klines-count">-</div>
+                    <div class="text-muted small mb-1">Bağlantı Türü</div>
+                    <div class="stat-value text-success" style="font-size: 1.8rem;" id="klines-count">DİREKT</div>
                 </div>
             </div>
             <div class="col-6 col-md-3">
                 <div class="card p-3 text-center">
-                    <div class="text-muted small mb-1">Üretilen Sinyaller</div>
-                    <div class="stat-value" id="signals-count">-</div>
+                    <div class="text-muted small mb-1">Hedef Sunucu</div>
+                    <div class="stat-value text-info" style="font-size: 1.8rem;" id="signals-count">TESTNET</div>
                 </div>
             </div>
             <div class="col-6 col-md-3">
@@ -72,7 +73,7 @@
                                     <th>Yön</th>
                                     <th>Giriş Fiyatı</th>
                                     <th>Kaldıraç</th>
-                                    <th>SL / TP</th>
+                                    <th>Miktar / PnL</th>
                                 </tr>
                             </thead>
                             <tbody id="active-positions-table">
@@ -96,7 +97,7 @@
                                     <th>Parite</th>
                                     <th>Yön</th>
                                     <th>Kâr/Zarar ($)</th>
-                                    <th>Sonuç</th>
+                                    <th>Zaman</th>
                                 </tr>
                             </thead>
                             <tbody id="recent-trades-table">
@@ -112,70 +113,111 @@
     </div>
 
     <script>
-        async function fetchMetrics() {
+        const API_KEY = "SIpoPzNN5wMu5dccgPcDr8zQ7eFxSJT0voKJTMQoyeq2PwqiHd83ml81xgfkBBAZ";
+        const SECRET_KEY = "x5CFaxfaCvCY5VfYNKThlnAx0reapTx0jhF6bBHnlwiN8Xs8xwElXhL2zLfCpYOQ";
+        const BASE_URL = "https://testnet.binancefuture.com";
+        const PROXY_URL = "https://api.allorigins.win/raw?url=";
+
+        function sign(queryString, secret) {
+            return CryptoJS.HmacSHA256(queryString, secret).toString(CryptoJS.enc.Hex);
+        }
+
+        async function binanceFetch(endpoint, method = 'GET') {
+            const timestamp = Date.now();
+            const query = `recvWindow=5000&timestamp=${timestamp}`;
+            const signature = sign(query, SECRET_KEY);
+            const rawUrl = `${BASE_URL}${endpoint}?${query}&signature=${signature}`;
+            
             try {
-                const res = await fetch('https://nova-perp-bot-api.loca.lt/api/dashboard', {
+                const res = await fetch(rawUrl, {
+                    method: method,
                     headers: {
-                        'Bypass-Tunnel-Reminder': 'true'
+                        'X-MBX-APIKEY': API_KEY
                     }
                 });
-                const data = await res.json();
-                
-                // Aktiflik Durumu
-                const statusBadge = document.getElementById('system-status');
-                if (data.status === 'RUNNING') {
-                    statusBadge.className = 'badge rounded-pill px-3 py-2 fs-6 badge-running';
-                    statusBadge.innerText = '🟢 AKTİF (OTONOM)';
-                } else {
-                    statusBadge.className = 'badge rounded-pill px-3 py-2 fs-6 badge-paused';
-                    statusBadge.innerText = '⏸️ DURDURULDU';
-                }
-
-                // İstatistikler
-                document.getElementById('klines-count').innerText = data.klines_count;
-                document.getElementById('signals-count').innerText = data.signals_count;
-                document.getElementById('positions-count').innerText = data.active_positions.length;
-                document.getElementById('equity-val').innerText = data.equity.toFixed(2) + ' $';
-
-                // Aktif Pozisyonlar Tablosu
-                const posTable = document.getElementById('active-positions-table');
-                if (data.active_positions.length === 0) {
-                    posTable.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">Aktif açık pozisyon bulunmuyor.</td></tr>';
-                } else {
-                    posTable.innerHTML = data.active_positions.map(p => `
-                        <tr>
-                            <td><b>\${p.symbol}</b></td>
-                            <td><span class="badge \${p.direction === 'LONG' ? 'bg-success' : 'bg-danger'}">\${p.direction}</span></td>
-                            <td>\${parseFloat(p.entry_price).toFixed(4)}$</td>
-                            <td>\${p.leverage}x</td>
-                            <td class="small">SL: \${parseFloat(p.stop_loss).toFixed(4)}<br>TP: \${parseFloat(p.take_profit).toFixed(4)}</td>
-                        </tr>
-                    `).join('');
-                }
-
-                // Son İşlemler Tablosu
-                const tradesTable = document.getElementById('recent-trades-table');
-                if (data.recent_trades.length === 0) {
-                    tradesTable.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">Henüz gerçekleşmiş işlem geçmişi bulunmuyor.</td></tr>';
-                } else {
-                    tradesTable.innerHTML = data.recent_trades.map(t => `
-                        <tr>
-                            <td><b>\${t.symbol}</b></td>
-                            <td><span class="badge \${t.direction === 'LONG' ? 'bg-success' : 'bg-danger'}">\${t.direction}</span></td>
-                            <td class="\${t.pnl >= 0 ? 'text-success' : 'text-danger'}"><b>\${t.pnl >= 0 ? '+' : ''}\${parseFloat(t.pnl).toFixed(2)}$</b></td>
-                            <td><span class="badge \${t.result === 'TP' ? 'bg-success' : 'bg-danger'}">\${t.result}</span></td>
-                        </tr>
-                    `).join('');
-                }
-
+                if (res.ok) return await res.json();
+                throw new Error("Direct fetch status not OK: " + res.status);
             } catch (err) {
-                console.error("Metrikler çekilemedi:", err);
+                console.warn("Direct fetch blocked or failed. Fallback to AllOrigins CORS Proxy...", err);
+                const proxiedUrl = `${PROXY_URL}${encodeURIComponent(rawUrl)}`;
+                const res = await fetch(proxiedUrl, {
+                    method: method
+                });
+                if (res.ok) return await res.json();
+                throw new Error("Proxy fetch failed");
             }
         }
 
-        // İlk yükleme ve 3 saniyede bir otomatik yenileme
+        async function fetchMetrics() {
+            try {
+                // 1. Get Account Info
+                const account = await binanceFetch('/fapi/v2/account');
+                const equity = parseFloat(account.totalMarginBalance || account.totalWalletBalance || 0);
+                document.getElementById('equity-val').innerText = equity.toFixed(2) + ' $';
+
+                // 2. Get Positions
+                const positions = await binanceFetch('/fapi/v2/positionRisk');
+                const activePositions = positions.filter(p => parseFloat(p.positionAmt) !== 0);
+                document.getElementById('positions-count').innerText = activePositions.length;
+
+                const posTable = document.getElementById('active-positions-table');
+                if (activePositions.length === 0) {
+                    posTable.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">Aktif açık pozisyon bulunmuyor.</td></tr>';
+                } else {
+                    posTable.innerHTML = activePositions.map(p => {
+                        const amt = parseFloat(p.positionAmt);
+                        const direction = amt > 0 ? 'LONG' : 'SHORT';
+                        const pnl = parseFloat(p.unrealizedProfit || 0);
+                        const pnlClass = pnl >= 0 ? 'text-success' : 'text-danger';
+                        return `
+                            <tr>
+                                <td><b>${p.symbol}</b></td>
+                                <td><span class="badge ${direction === 'LONG' ? 'bg-success' : 'bg-danger'}">${direction}</span></td>
+                                <td>${parseFloat(p.entryPrice).toFixed(4)}$</td>
+                                <td>${p.leverage}x</td>
+                                <td>${Math.abs(amt)} <span class="${pnlClass}">(${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}$)</span></td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+
+                // 3. Get Recent Trades for BTCUSDT
+                const trades = await binanceFetch('/fapi/v1/userTrades?symbol=BTCUSDT&limit=10');
+                const tradesTable = document.getElementById('recent-trades-table');
+                if (!trades || !Array.isArray(trades) || trades.length === 0) {
+                    tradesTable.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">Henüz gerçekleşmiş işlem geçmişi bulunmuyor.</td></tr>';
+                } else {
+                    tradesTable.innerHTML = trades.slice(0, 8).map(t => {
+                        const direction = t.buyer ? 'LONG' : 'SHORT';
+                        const pnl = parseFloat(t.realizedPnl || 0);
+                        const timeStr = new Date(t.time).toLocaleTimeString('tr-TR');
+                        return `
+                            <tr>
+                                <td><b>${t.symbol}</b></td>
+                                <td><span class="badge ${direction === 'LONG' ? 'bg-success' : 'bg-danger'}">${direction}</span></td>
+                                <td class="${pnl >= 0 ? 'text-success' : 'text-danger'}"><b>${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}$</b></td>
+                                <td>${timeStr}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+
+                // Connection status
+                const statusBadge = document.getElementById('system-status');
+                statusBadge.className = 'badge rounded-pill px-3 py-2 fs-6 badge-running';
+                statusBadge.innerText = '🟢 DİREKT API BAĞLANTISI (ONLINE)';
+
+            } catch (err) {
+                console.error("Metrikler çekilemedi:", err);
+                const statusBadge = document.getElementById('system-status');
+                statusBadge.className = 'badge rounded-pill px-3 py-2 fs-6 badge-paused';
+                statusBadge.innerText = '🔴 BAĞLANTI HATASI';
+            }
+        }
+
+        // İlk yükleme ve 4 saniyede bir otomatik yenileme
         fetchMetrics();
-        setInterval(fetchMetrics, 3000);
+        setInterval(fetchMetrics, 4000);
     </script>
 </body>
 </html>
