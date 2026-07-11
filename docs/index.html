@@ -114,7 +114,11 @@
     <script>
         async function fetchMetrics() {
             try {
-                const res = await fetch('http://34.53.139.85:3001/api/dashboard');
+                const res = await fetch('https://nova-perp-bot-api.loca.lt/api/dashboard', {
+                    headers: {
+                        'Bypass-Tunnel-Reminder': 'true'
+                    }
+                });
                 const data = await res.json();
                 
                 // Aktiflik Durumu

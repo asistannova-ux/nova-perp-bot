@@ -9,6 +9,14 @@ const PORT = 3001;
 
 app.use(bodyParser.json());
 
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+  res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type,bypass-tunnel-reminder');
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  next();
+});
+
 const pool = new Pool({
   host: process.env.DB_HOST || 'timescaledb',
   port: parseInt(process.env.DB_PORT || '5432'),
